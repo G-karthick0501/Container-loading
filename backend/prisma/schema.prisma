@@ -7,10 +7,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum JobStatus { 
+  DRAFT
+  READY
+  RUNNING
+  COMPLETE
+  FAILED
+}
+
 model User {
   id         String   @id @default(uuid())
   email      String   @unique
   password   String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  
+  jobs       Job[]
+}
+
+model Job {
+  id         String    @id @default(uuid())
+  name       String
+  status     JobStatus @default(DRAFT)
+  
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
