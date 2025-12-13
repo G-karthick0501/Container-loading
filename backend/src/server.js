@@ -4,6 +4,8 @@ import cors from 'cors';
 import prisma from './config/prisma.js';
 import authRoutes from './routes/auth.js';
 import jobRoutes from './routes/jobRoutes.js';
+//import itemRoutes from './routes/itemRoutes.js';  
+
 
 dotenv.config();
 
@@ -23,6 +25,8 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
+//app.use('/api/jobs/:jobId/items', itemRoutes);
+//app.use('/api/items', itemRoutes);
 
 // Check database connection
 async function checkDatabase() {
@@ -35,6 +39,9 @@ async function checkDatabase() {
 }
 
 checkDatabase();
+
+// Debug: List all routes
+
 
 // Start server
 app.listen(port, () => {

@@ -74,7 +74,7 @@ function Jobs() {
           </thead>
           <tbody>
             {jobs.map((job) => (
-              <tr key={job.id} style={{ borderBottom: '1px solid #eee' }}>
+              <tr key={job.id} style={{ borderBottom: '1px solid #eee',cursor: 'pointer' }} onClick={() => navigate(`/jobs/${job.id}`)}>
                 <td style={{ padding: '0.5rem' }}>{job.name}</td>
                 <td style={{ padding: '0.5rem' }}>
                   <span style={{

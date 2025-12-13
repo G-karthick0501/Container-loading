@@ -35,4 +35,22 @@ model Job {
   
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+
+  items      Item[]
+}
+
+model Item {
+  id         String   @id @default(uuid())
+  name       String
+  length     Float
+  width      Float
+  height     Float
+  weight     Float
+  quantity   Int      @default(1)
+  
+  jobId      String
+  job        Job      @relation(fields: [jobId], references: [id])
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
