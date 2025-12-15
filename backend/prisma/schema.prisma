@@ -37,6 +37,18 @@ model Job {
   updatedAt  DateTime  @updatedAt
 
   items      Item[]
+
+   containerId     String?
+  container       Container?  @relation(fields: [containerId], references: [id])
+  
+  // NEW: Custom container dimensions (when not using preset)
+  customLength    Float?
+  customWidth     Float?
+  customHeight    Float?
+  customMaxWeight Float?
+  
+  // NEW: Constraints
+  allowRotation   Boolean @default(true)
 }
 
 model Item {
@@ -53,4 +65,22 @@ model Item {
   
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+
+model Container {
+  id          String   @id @default(uuid())
+  name        String   // "40ft Standard"
+  code        String   @unique // "40ST"
+  length      Float    // internal dimensions in mm
+  width       Float
+  height      Float
+  maxWeight   Float    // kg
+  volume      Float    // m³ (pre-calculated for convenience)
+  description String?
+  
+  createdAt   DateTime @default(now())
+  
+  // Relation - jobs can reference this container
+  jobs        Job[]
 }

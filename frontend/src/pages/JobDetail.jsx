@@ -9,6 +9,7 @@ import ErrorMessage from '../components/common/ErrorMessage';
 import CsvUpload from '../components/items/CsvUpload';
 import AddItemForm from '../components/items/AddItemForm';
 import ItemsTable from '../components/items/ItemsTable';
+import ContainerSelector from '../components/containers/ContainerSelector';
 
 import useItems from '../hooks/useItems';
 
@@ -54,6 +55,10 @@ function JobDetail() {
     await deleteItem(itemId);
   };
 
+  const handleContainerSave = (updatedJob) => {
+    setJob(updatedJob);
+  };
+
   if (jobLoading || itemsLoading) return <LoadingSpinner message="Loading job..." />;
   if (!job) return <p>Job not found</p>;
 
@@ -73,23 +78,57 @@ function JobDetail() {
         <StatusBadge status={job.status} />
       </div>
 
-      <hr style={{ margin: '2rem 0' }} />
+      {/* Items Section */}
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Items ({items.length})</h2>
+        
+        <CsvUpload onUpload={uploadCsv} />
+        
+        <ItemsTable
+          items={items}
+          editingItem={editingItem}
+          onEditClick={handleEditClick}
+          onEditChange={handleEditChange}
+          onEditSave={handleEditSave}
+          onEditCancel={handleEditCancel}
+          onDelete={handleDeleteItem}
+        />
 
-      <h2>Items ({items.length})</h2>
+        <AddItemForm onAdd={addItem} />
+      </section>
 
-      <CsvUpload onUpload={uploadCsv} />
-      
-      <ItemsTable
-        items={items}
-        editingItem={editingItem}
-        onEditClick={handleEditClick}
-        onEditChange={handleEditChange}
-        onEditSave={handleEditSave}
-        onEditCancel={handleEditCancel}
-        onDelete={handleDeleteItem}
-      />
+      {/* Container Section */}
+      <section className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Container Selection</h2>
+        
+        {items.length === 0 ? (
+          <p className="text-gray-500">Add items first to get container recommendations.</p>
+        ) : (
+          <ContainerSelector
+            jobId={jobId}
+            currentContainerId={job.containerId}
+            onSave={handleContainerSave}
+          />
+        )}
+      </section>
 
-      <AddItemForm onAdd={addItem} />
+      {/* Ready Status */}
+      {job.status === 'READY' && (
+        <section className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-green-800 mb-2">
+            ✅ Ready to Optimize
+          </h3>
+          <p className="text-green-700 mb-4">
+            {items.length} items → {job.container?.name || 'Custom container'}
+          </p>
+          <button
+            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+            onClick={() => alert('Phase 4 will add optimization!')}
+          >
+            Run Optimization
+          </button>
+        </section>
+      )}
     </div>
   );
 }
