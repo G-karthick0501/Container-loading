@@ -49,6 +49,8 @@ model Job {
   
   // NEW: Constraints
   allowRotation   Boolean @default(true)
+
+  placements  Placement[] 
 }
 
 model Item {
@@ -65,6 +67,8 @@ model Item {
   
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  placements  Placement[] 
 }
 
 
@@ -83,4 +87,29 @@ model Container {
   
   // Relation - jobs can reference this container
   jobs        Job[]
+}
+
+model Placement {
+  id        String   @id @default(uuid())
+  
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  // Position in container (mm from origin)
+  x         Float
+  y         Float
+  z         Float
+  
+  // Dimensions as placed (might be rotated)
+  placedLength  Float
+  placedWidth   Float
+  placedHeight  Float
+  
+  rotated   Boolean  @default(false)
+  placed    Boolean  @default(true)   // false if item couldn't fit
+  
+  createdAt DateTime @default(now())
 }
