@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
+import StatusBadge from '../components/common/StatusBadge';
+
 function Jobs() {
   const [jobs, setJobs] = useState([]);
   const [jobName, setJobName] = useState('');
@@ -9,7 +13,6 @@ function Jobs() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // Fetch jobs on page load
   useEffect(() => {
     fetchJobs();
   }, []);
@@ -18,9 +21,9 @@ function Jobs() {
     try {
       const response = await api.get('/api/jobs');
       setJobs(response.data);
-      setLoading(false);
     } catch (err) {
       setError('Failed to load jobs');
+    } finally {
       setLoading(false);
     }
   };
@@ -38,56 +41,55 @@ function Jobs() {
     }
   };
 
-  if (loading) return <p>Loading jobs...</p>;
+  if (loading) return <LoadingSpinner message="Loading jobs..." />;
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>My Jobs</h1>
-      
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="p-8 max-w-4xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">My Jobs</h1>
+
+      <ErrorMessage message={error} />
 
       {/* Create Job Form */}
-      <form onSubmit={createJob} style={{ marginBottom: '2rem' }}>
+      <form onSubmit={createJob} className="mb-8 flex gap-4">
         <input
           type="text"
           value={jobName}
           onChange={(e) => setJobName(e.target.value)}
           placeholder="Job name (e.g., Shipment to Mumbai)"
-          style={{ padding: '0.5rem', width: '300px', marginRight: '1rem' }}
+          className="px-4 py-2 border border-gray-300 rounded-md w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <button type="submit" style={{ padding: '0.5rem 1rem' }}>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+        >
           + New Job
         </button>
       </form>
 
       {/* Jobs List */}
       {jobs.length === 0 ? (
-        <p>No jobs yet. Create your first job above!</p>
+        <p className="text-gray-500">No jobs yet. Create your first job above!</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table className="w-full border-collapse">
           <thead>
-            <tr style={{ borderBottom: '2px solid #ccc' }}>
-              <th style={{ textAlign: 'left', padding: '0.5rem' }}>Name</th>
-              <th style={{ textAlign: 'left', padding: '0.5rem' }}>Status</th>
-              <th style={{ textAlign: 'left', padding: '0.5rem' }}>Created</th>
+            <tr className="border-b-2 border-gray-300">
+              <th className="text-left p-3">Name</th>
+              <th className="text-left p-3">Status</th>
+              <th className="text-left p-3">Created</th>
             </tr>
           </thead>
           <tbody>
             {jobs.map((job) => (
-              <tr key={job.id} style={{ borderBottom: '1px solid #eee',cursor: 'pointer' }} onClick={() => navigate(`/jobs/${job.id}`)}>
-                <td style={{ padding: '0.5rem' }}>{job.name}</td>
-                <td style={{ padding: '0.5rem' }}>
-                  <span style={{
-                    background: job.status === 'DRAFT' ? '#ffc107' : '#28a745',
-                    color: 'white',
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '4px',
-                    fontSize: '0.8rem'
-                  }}>
-                    {job.status}
-                  </span>
+              <tr
+                key={job.id}
+                onClick={() => navigate(`/jobs/${job.id}`)}
+                className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition"
+              >
+                <td className="p-3 font-medium">{job.name}</td>
+                <td className="p-3">
+                  <StatusBadge status={job.status} />
                 </td>
-                <td style={{ padding: '0.5rem' }}>
+                <td className="p-3 text-gray-600">
                   {new Date(job.createdAt).toLocaleDateString()}
                 </td>
               </tr>
