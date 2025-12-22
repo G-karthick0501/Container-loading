@@ -48,7 +48,11 @@ export const getJob = async (req, res) => {
     const userId = req.user.id;
 
     const job = await prisma.job.findFirst({
-      where: { id, userId }
+      where: { id, userId },
+      include: {
+        container:true,
+        placements:true
+      }
     });
 
     if (!job) {

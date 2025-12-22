@@ -19,6 +19,8 @@ function JobDetail() {
   const [job, setJob] = useState(null);
   const [jobLoading, setJobLoading] = useState(true);
   const [editingItem, setEditingItem] = useState(null);
+  const [optimizing, setOptimizing] = useState(false);
+  const [optimizationResult, setOptimizationResult] = useState(null);
   
   const { items, loading: itemsLoading, error, addItem, deleteItem, updateItem, uploadCsv } = useItems(jobId);
 
@@ -27,6 +29,26 @@ function JobDetail() {
       try {
         const response = await api.get(`api/jobs/${jobId}`);
         setJob(response.data);
+        // Load existing placements if job is COMPLETE
+        if (response.data.status === 'COMPLETE' && response.data.placements?.length > 0) {
+          const placements = response.data.placements;
+          const placedCount = placements.filter(p => p.placed).length;
+          const unplacedCount = placements.filter(p => !p.placed).length;
+          const placedVolume = placements
+            .filter(p => p.placed)
+            .reduce((sum, p) => sum + (p.placedLength * p.placedWidth * p.placedHeight), 0) / 1e9;
+          
+          setOptimizationResult({
+            stats: {
+              totalItems: placements.length,
+              placedCount,
+              unplacedCount,
+              placedVolume,
+              utilization: Math.round((placedVolume / (response.data.container?.volume || 1)) * 1000) / 10
+            },
+            placements
+          });
+        }
       } finally {
         setJobLoading(false);
       }
@@ -58,6 +80,22 @@ function JobDetail() {
   const handleContainerSave = (updatedJob) => {
     setJob(updatedJob);
   };
+
+  const handleOptimize = async () => {
+  try {
+    setOptimizing(true);
+    setOptimizationResult(null);
+    
+    const response = await api.post(`api/jobs/${jobId}/optimize`);
+    
+    setOptimizationResult(response.data);
+    setJob({ ...job, status: 'COMPLETE' });
+  } catch (err) {
+    alert(err.response?.data?.error || 'Optimization failed');
+  } finally {
+    setOptimizing(false);
+  }
+};
 
   if (jobLoading || itemsLoading) return <LoadingSpinner message="Loading job..." />;
   if (!job) return <p>Job not found</p>;
@@ -113,22 +151,47 @@ function JobDetail() {
       </section>
 
       {/* Ready Status */}
-      {job.status === 'READY' && (
-        <section className="bg-green-50 border border-green-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-green-800 mb-2">
-            ✅ Ready to Optimize
-          </h3>
-          <p className="text-green-700 mb-4">
-            {items.length} items → {job.container?.name || 'Custom container'}
+      {/* Optimization Section */}
+{(job.status === 'READY' || job.status === 'COMPLETE') && (
+  <section className="bg-green-50 border border-green-200 rounded-lg p-6">
+    <h3 className="text-lg font-semibold text-green-800 mb-2">
+      {job.status === 'READY' ? '✅ Ready to Optimize' : '📦 Optimization Complete'}
+    </h3>
+    <p className="text-green-700 mb-4">
+      {items.reduce((sum, item) => sum + item.quantity, 0)} items → {job.container?.name || 'Custom container'}
+    </p>
+    
+    {job.status === 'READY' && (
+      <button
+        className={`px-6 py-2 rounded-md text-white transition ${
+          optimizing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+        }`}
+        onClick={handleOptimize}
+        disabled={optimizing}
+      >
+        {optimizing ? 'Optimizing...' : 'Run Optimization'}
+      </button>
+    )}
+
+    {optimizationResult && (
+      <div className="mt-4 p-4 bg-white rounded-lg border">
+        <h4 className="font-semibold mb-2">Results</h4>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <p>Total Items:</p>
+          <p>{optimizationResult.stats.totalItems}</p>
+          <p>Placed:</p>
+          <p className="text-green-600">{optimizationResult.stats.placedCount}</p>
+          <p>Couldn't fit:</p>
+          <p className={optimizationResult.stats.unplacedCount > 0 ? 'text-red-600' : ''}>
+            {optimizationResult.stats.unplacedCount}
           </p>
-          <button
-            className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
-            onClick={() => alert('Phase 4 will add optimization!')}
-          >
-            Run Optimization
-          </button>
-        </section>
-      )}
+          <p>Utilization:</p>
+          <p className="font-semibold">{optimizationResult.stats.utilization}%</p>
+        </div>
+      </div>
+    )}
+  </section>
+)}
     </div>
   );
 }
