@@ -10,6 +10,7 @@ import CsvUpload from '../components/items/CsvUpload';
 import AddItemForm from '../components/items/AddItemForm';
 import ItemsTable from '../components/items/ItemsTable';
 import ContainerSelector from '../components/containers/ContainerSelector';
+import ContainerViewer from '../components/visualization/ContainerViewer';
 
 import useItems from '../hooks/useItems';
 
@@ -190,6 +191,17 @@ function JobDetail() {
         </div>
       </div>
     )}
+    {/* 3D Visualization */}
+{optimizationResult && (
+  <div className="mt-6">
+    <h4 className="font-semibold mb-2">3D View</h4>
+    <ContainerViewer 
+      container={job.container}
+      placements={optimizationResult.placements}
+      items={items}
+    />
+  </div>
+)}
   </section>
 )}
     </div>
