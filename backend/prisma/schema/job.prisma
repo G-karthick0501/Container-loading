@@ -1,0 +1,35 @@
+model Job {
+  id              String        @id @default(uuid())
+  name            String
+  status          JobStatus     @default(DRAFT)
+  
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  
+  // Transport mode selection
+  transportMode   TransportMode?
+  
+  containerId     String?
+  container       Container?    @relation(fields: [containerId], references: [id])
+  
+  // Custom container dimensions
+  customLength    Float?
+  customWidth     Float?
+  customHeight    Float?
+  customMaxWeight Float?
+  
+  // Constraints
+  allowRotation   Boolean       @default(true)
+  
+  // ML-selected algorithm (premium)
+  algorithm       String?
+  
+  // Multi-container results (premium)
+  totalContainers Int?
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  items           Item[]
+  placements      Placement[]
+}

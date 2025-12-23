@@ -1,104 +1,163 @@
-import { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFilePdf, faFileCode } from '@fortawesome/free-solid-svg-icons';
+import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import api from '../../services/api';
 
+import PredictionCard from './PredictionCard';
+import OptimizationResults from './OptimizationResults';
+import AlgorithmSelector from './AlgorithmSelector';
+import ProgressBar from './ProgressBar';
 import ContainerViewer from '../visualization/ContainerViewer';
-import { formatExportData, downloadJSON, downloadPDF } from '../../utils/exportUtils';
+import { useSocket } from '../../hooks/useSocket';
 
 function OptimizationSection({ job, items, onOptimize }) {
   const [optimizing, setOptimizing] = useState(false);
-  const [optimizationResult, setOptimizationResult] = useState(null);
+  const [result, setResult] = useState(null);
+  const [prediction, setPrediction] = useState(null);
+  const [algorithm, setAlgorithm] = useState('extreme-points');
+  
+  const { connected, progress, resetProgress } = useSocket(job.id);
+
+  // Handle WebSocket completion
+  useEffect(() => {
+    if (progress?.status === 'complete') {
+      // Refetch job data to get placements
+      fetchResult();
+    }
+  }, [progress?.status]);
+
+  const fetchResult = async () => {
+    try {
+      const response = await api.get(`api/jobs/${job.id}`);
+      if (response.data.placements?.length > 0) {
+        // Reconstruct result from job data
+        const placements = response.data.placements;
+        const placedCount = placements.filter(p => p.placed).length;
+        const placedVolume = placements
+          .filter(p => p.placed)
+          .reduce((sum, p) => sum + (p.placedLength * p.placedWidth * p.placedHeight) / 1e9, 0);
+        
+        const containerVolume = job.container 
+          ? job.container.volume 
+          : (job.customLength * job.customWidth * job.customHeight) / 1e9;
+
+        setResult({
+          placements,
+          stats: {
+            totalItems: placements.length,
+            placedCount,
+            unplacedCount: placements.length - placedCount,
+            utilization: Math.round((placedVolume / containerVolume) * 1000) / 10
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch result:', err);
+    }
+  };
 
   const handleOptimize = async () => {
+    resetProgress();
+    const isGenetic = algorithm === 'genetic';
+    
+    if (!isGenetic) {
+      toast.loading('Running optimization...', { id: 'optimize' });
+    }
+    
     try {
       setOptimizing(true);
-      setOptimizationResult(null);
-      const result = await onOptimize(); // Parent passes the API call
-      setOptimizationResult(result);
+      const response = await api.post(`api/jobs/${job.id}/optimize`, { algorithm });
+      setResult(response.data);
+      onOptimize({ ...job, status: 'COMPLETE' });
+      
+      toast.dismiss('optimize');
+      toast.success(`Done! ${response.data.stats.utilization}% utilization (${response.data.algorithm})`);
     } catch (err) {
-      alert(err.message || 'Optimization failed');
+      toast.dismiss('optimize');
+      toast.error(err.response?.data?.error || 'Optimization failed');
     } finally {
       setOptimizing(false);
     }
   };
 
-  const handleExportJSON = () => {
-    const exportData = formatExportData(job, items, optimizationResult);
-    const filename = `${job.name.replace(/\s+/g, '_')}_load_plan.json`;
-    downloadJSON(exportData, filename);
-  };
-
-  const handleExportPDF = () => {
-    downloadPDF(job, items, optimizationResult);
-  };
-
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+  const isReady = job.status === 'READY';
+  const isGenetic = algorithm === 'genetic';
 
   return (
     <section className="bg-green-50 border border-green-200 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-green-800 mb-2">
-        {job.status === 'READY' ? '✅ Ready to Optimize' : '📦 Optimization Complete'}
-      </h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-lg font-semibold text-green-800">
+          {isReady ? '✅ Ready to Optimize' : '📦 Optimization Complete'}
+        </h3>
+        {connected && (
+          <span className="text-xs bg-green-200 text-green-700 px-2 py-1 rounded">
+            🔌 Live
+          </span>
+        )}
+      </div>
       <p className="text-green-700 mb-4">
         {totalQuantity} items → {job.container?.name || 'Custom container'}
       </p>
 
-      {/* Optimize Button */}
-      {job.status === 'READY' && (
+      {/* ML Prediction */}
+      {isReady && !result && (
+        <div className="mb-4">
+          <PredictionCard 
+            jobId={job.id} 
+            items={items}
+            container={job.container}
+            onPrediction={setPrediction} 
+          />
+        </div>
+      )}
+
+      {/* Algorithm Selector */}
+      {isReady && !result && (
+        <AlgorithmSelector
+          selected={algorithm}
+          onChange={setAlgorithm}
+          disabled={optimizing}
+        />
+      )}
+
+      {/* Progress Bar (for Genetic) */}
+      {optimizing && isGenetic && (
+        <ProgressBar progress={progress} />
+      )}
+
+      {/* Run Button */}
+      {isReady && !result && (
         <button
+          onClick={handleOptimize}
+          disabled={optimizing}
           className={`px-6 py-2 rounded-md text-white transition ${
             optimizing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
           }`}
-          onClick={handleOptimize}
-          disabled={optimizing}
         >
-          {optimizing ? 'Optimizing...' : 'Run Optimization'}
+          {optimizing 
+            ? (isGenetic ? 'Running Genetic Algorithm...' : 'Optimizing...') 
+            : `Run ${algorithm === 'auto' ? 'Auto' : algorithm === 'genetic' ? 'Genetic 🧬' : 'Optimization'}`
+          }
         </button>
       )}
 
       {/* Results */}
-      {optimizationResult && (
-        <div className="mt-4 p-4 bg-white rounded-lg border">
-          <h4 className="font-semibold mb-2">Results</h4>
-          
-          <div className="grid grid-cols-2 gap-2 text-sm mb-4">
-            <p>Total Items:</p>
-            <p>{optimizationResult.stats.totalItems}</p>
-            <p>Placed:</p>
-            <p className="text-green-600">{optimizationResult.stats.placedCount}</p>
-            <p>Couldn't fit:</p>
-            <p className={optimizationResult.stats.unplacedCount > 0 ? 'text-red-600' : ''}>
-              {optimizationResult.stats.unplacedCount}
-            </p>
-            <p>Utilization:</p>
-            <p className="font-semibold">{optimizationResult.stats.utilization}%</p>
-          </div>
-
-          {/* Export Buttons */}
-          <div className="pt-4 border-t flex gap-4">
-            <button
-              onClick={handleExportJSON}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-            >
-              <FontAwesomeIcon icon={faFileCode} /> Export JSON
-            </button>
-            <button
-              onClick={handleExportPDF}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-            >
-              <FontAwesomeIcon icon={faFilePdf} /> Export PDF
-            </button>
-          </div>
-        </div>
+      {result && (
+        <OptimizationResults
+          job={job}
+          items={items}
+          result={result}
+          prediction={prediction}
+        />
       )}
 
-      {/* 3D Visualization */}
-      {optimizationResult && (
+      {/* 3D Viewer */}
+      {result && (
         <div className="mt-6">
           <h4 className="font-semibold mb-2">3D View</h4>
           <ContainerViewer
             container={job.container}
-            placements={optimizationResult.placements}
+            placements={result.placements}
             items={items}
           />
         </div>

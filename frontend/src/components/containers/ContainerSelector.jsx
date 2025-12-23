@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import ContainerCard from './ContainerCard';
+import TransportModeTabs from './TransportModeTabs';
+import ContainerGrid from './ContainerGrid';
 
-function ContainerSelector({ jobId, currentContainerId, onSave }) {
+function ContainerSelector({ jobId, currentContainerId, currentTransportMode, onSave }) {
   const [containers, setContainers] = useState([]);
   const [recommendation, setRecommendation] = useState(null);
+  const [selectedMode, setSelectedMode] = useState(currentTransportMode || 'SEA');
   const [selectedId, setSelectedId] = useState(currentContainerId || null);
   const [allowRotation, setAllowRotation] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -12,31 +14,47 @@ function ContainerSelector({ jobId, currentContainerId, onSave }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchData();
-  }, [jobId]);
+    fetchContainers();
+  }, [selectedMode]);
 
-  const fetchData = async () => {
+  useEffect(() => {
+    if (jobId) fetchRecommendation();
+  }, [jobId, selectedMode]);
+
+  const fetchContainers = async () => {
     try {
       setLoading(true);
+      const response = await api.get(`api/containers?mode=${selectedMode}`);
+      setContainers(response.data);
       
-      // Fetch containers and recommendation in parallel
-      const [containersRes, recoRes] = await Promise.all([
-        api.get('api/containers'),
-        api.get(`api/jobs/${jobId}/recommendation`)
-      ]);
-      
-      setContainers(containersRes.data);
-      setRecommendation(recoRes.data);
-      
-      // If no container selected yet, pre-select recommended
-      if (!currentContainerId && recoRes.data.recommended) {
-        setSelectedId(recoRes.data.recommended.id);
+      // Clear selection if not in this mode
+      if (!response.data.find(c => c.id === selectedId)) {
+        setSelectedId(null);
       }
     } catch (err) {
       setError('Failed to load containers');
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchRecommendation = async () => {
+    try {
+      const response = await api.get(`api/jobs/${jobId}/recommendation?mode=${selectedMode}`);
+      setRecommendation(response.data);
+      
+      if (!selectedId && response.data.recommended) {
+        setSelectedId(response.data.recommended.id);
+      }
+    } catch (err) {
+      // Optional - no error needed
+    }
+  };
+
+  const handleModeChange = (mode) => {
+    setSelectedMode(mode);
+    setSelectedId(null);
+    setRecommendation(null);
   };
 
   const handleSave = async () => {
@@ -51,6 +69,7 @@ function ContainerSelector({ jobId, currentContainerId, onSave }) {
       
       const response = await api.put(`api/jobs/${jobId}/container`, {
         containerId: selectedId,
+        transportMode: selectedMode,
         allowRotation
       });
       
@@ -62,18 +81,17 @@ function ContainerSelector({ jobId, currentContainerId, onSave }) {
     }
   };
 
-  if (loading) {
-    return <div className="text-gray-500">Loading containers...</div>;
-  }
-
   return (
     <div className="space-y-6">
-      {/* Recommendation Banner */}
+      <TransportModeTabs 
+        selectedMode={selectedMode} 
+        onModeChange={handleModeChange} 
+      />
+
+      {/* Recommendation */}
       {recommendation?.recommended && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-800">
-            💡 {recommendation.reason}
-          </p>
+          <p className="text-green-800">💡 {recommendation.reason}</p>
           <p className="text-sm text-green-600 mt-1">
             Estimated utilization: ~{recommendation.utilization}%
           </p>
@@ -81,17 +99,16 @@ function ContainerSelector({ jobId, currentContainerId, onSave }) {
       )}
 
       {/* Container Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {containers.map((container) => (
-          <ContainerCard
-            key={container.id}
-            container={container}
-            selected={selectedId === container.id}
-            recommended={recommendation?.recommended?.id === container.id}
-            onSelect={setSelectedId}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <p className="text-gray-500 py-8 text-center">Loading containers...</p>
+      ) : (
+        <ContainerGrid
+          containers={containers}
+          selectedId={selectedId}
+          recommendedId={recommendation?.recommended?.id}
+          onSelect={setSelectedId}
+        />
+      )}
 
       {/* Options */}
       <div className="flex items-center gap-2">
@@ -103,26 +120,20 @@ function ContainerSelector({ jobId, currentContainerId, onSave }) {
           className="w-4 h-4 text-blue-600 rounded"
         />
         <label htmlFor="allowRotation" className="text-gray-700">
-          Allow item rotation (items can be rotated to fit better)
+          Allow item rotation
         </label>
       </div>
 
-      {/* Error */}
-      {error && (
-        <p className="text-red-600 text-sm">{error}</p>
-      )}
+      {error && <p className="text-red-600 text-sm">{error}</p>}
 
-      {/* Save Button */}
       <button
         onClick={handleSave}
         disabled={saving || !selectedId}
-        className={`
-          px-6 py-2 rounded-md text-white transition
-          ${saving || !selectedId
+        className={`px-6 py-2 rounded-md text-white transition ${
+          saving || !selectedId
             ? 'bg-gray-400 cursor-not-allowed'
             : 'bg-blue-600 hover:bg-blue-700'
-          }
-        `}
+        }`}
       >
         {saving ? 'Saving...' : 'Save Container Selection'}
       </button>

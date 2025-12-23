@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 function useItems(jobId) {
   const [items, setItems] = useState([]);
@@ -12,7 +13,7 @@ function useItems(jobId) {
         const response = await api.get(`api/jobs/${jobId}/items`);
         setItems(response.data);
       } catch (err) {
-        setError('Failed to fetch items.');
+        toast.error('Failed to load items');
       } finally {
         setLoading(false);
       }
@@ -24,16 +25,19 @@ function useItems(jobId) {
     try {
       const response = await api.post(`api/jobs/${jobId}/items`, itemData);
       setItems((prevItems) => [...prevItems, response.data]);
+      toast.success('Item added');
     } catch (err) {
-      setError('Failed to add item.');
+      toast.error('Failed to add item');
     }
   };
+
   const deleteItem = async (itemId) => {
     try {
       await api.delete(`api/jobs/${jobId}/items/${itemId}`);
       setItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+      toast.success('Item deleted');
     } catch (err) {
-      setError('Failed to delete item.');
+      toast.error('Failed to delete item');
     }
   };
 
@@ -43,8 +47,9 @@ function useItems(jobId) {
       setItems((prevItems) =>
         prevItems.map((item) => (item.id === itemId ? response.data : item))
       );
+      toast.success('Item updated');
     } catch (err) {
-      setError('Failed to update item.');
+      toast.error('Failed to update item');
     }
   };
 
@@ -54,26 +59,16 @@ function useItems(jobId) {
 
     try {
       const response = await api.post(`api/jobs/${jobId}/items/csv`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       setItems(response.data.items);
-      //setItems((prevItems) => [...prevItems, ...response.data]);
+      toast.success('CSV uploaded successfully');
     } catch (err) {
-      setError('Failed to upload CSV.');
+      toast.error('Failed to upload CSV');
     }
   };
 
-  return {
-    items,
-    loading,
-    error,
-    addItem,
-    deleteItem,
-    updateItem,
-    uploadCsv,
-  };
+  return { items, loading, error, addItem, deleteItem, updateItem, uploadCsv };
 }
 
 export default useItems;

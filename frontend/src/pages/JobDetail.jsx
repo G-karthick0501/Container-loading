@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
-import StatusBadge from '../components/common/StatusBadge';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorMessage from '../components/common/ErrorMessage';
 
+import JobHeader from '../components/jobs/JobHeader';          // ← ADD
 import CsvUpload from '../components/items/CsvUpload';
 import AddItemForm from '../components/items/AddItemForm';
 import ItemsTable from '../components/items/ItemsTable';
@@ -19,7 +20,6 @@ function JobDetail() {
   const [job, setJob] = useState(null);
   const [jobLoading, setJobLoading] = useState(true);
   const [editingItem, setEditingItem] = useState(null);
- 
   
   const { items, loading: itemsLoading, error, addItem, deleteItem, updateItem, uploadCsv } = useItems(jobId);
 
@@ -28,7 +28,6 @@ function JobDetail() {
       try {
         const response = await api.get(`api/jobs/${jobId}`);
         setJob(response.data);
-        // Load existing placements if job is COMPLETE
       } finally {
         setJobLoading(false);
       }
@@ -62,14 +61,10 @@ function JobDetail() {
   };
 
   const runOptimization = async () => {
-  const response = await api.post(`api/jobs/${jobId}/optimize`);
-  setJob({ ...job, status: 'COMPLETE' });
-  return response.data;
-};
-
-  
-
-
+    const response = await api.post(`api/jobs/${jobId}/optimize`);
+    setJob({ ...job, status: 'COMPLETE' });
+    return response.data;
+  };
 
   if (jobLoading || itemsLoading) return <LoadingSpinner message="Loading job..." />;
   if (!job) return <p>Job not found</p>;
@@ -78,17 +73,8 @@ function JobDetail() {
     <div className="p-8 max-w-5xl mx-auto">
       <ErrorMessage message={error} />
       
-      <Link 
-        to="/jobs"
-        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 transition mb-6"
-      >
-        ← Back to Jobs
-      </Link>
-
-      <div className="flex items-center gap-4 mb-6">
-        <h1 className="text-3xl font-bold">{job.name}</h1>
-        <StatusBadge status={job.status} />
-      </div>
+      {/* ← NOW JUST ONE LINE! */}
+      <JobHeader job={job} />
 
       {/* Items Section */}
       <section className="mb-8">
@@ -119,21 +105,20 @@ function JobDetail() {
           <ContainerSelector
             jobId={jobId}
             currentContainerId={job.containerId}
+            currentTransportMode={job.transportMode}
             onSave={handleContainerSave}
           />
         )}
       </section>
 
-      {/* Ready Status */}
       {/* Optimization Section */}
-{(job.status === 'READY' || job.status === 'COMPLETE') && (
-  <OptimizationSection
-    job={job}
-    items={items}
-    onOptimize={runOptimization}
-  />
-)}
-  
+      {(job.status === 'READY' || job.status === 'COMPLETE') && (
+        <OptimizationSection
+          job={job}
+          items={items}
+          onOptimize={runOptimization}
+        />
+      )}
     </div>
   );
 }

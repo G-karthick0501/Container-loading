@@ -1,0 +1,32 @@
+model Container {
+  id              String          @id @default(uuid())
+  name            String
+  code            String          @unique
+  
+  // Transport mode
+  mode            TransportMode
+  usage           ContainerUsage  @default(COMMON)
+  
+  // Internal dimensions (mm)
+  length          Float
+  width           Float
+  height          Float
+  
+  // Constraints
+  maxWeight       Float
+  volume          Float
+  
+  // Optional fields
+  doorWidth       Float?
+  doorHeight      Float?
+  tareWeight      Float?
+  
+  // Special properties
+  isRefrigerated  Boolean         @default(false)
+  contoured       Boolean         @default(false)
+  
+  description     String?
+  createdAt       DateTime        @default(now())
+  
+  jobs            Job[]
+}

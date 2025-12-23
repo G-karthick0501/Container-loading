@@ -1,0 +1,22 @@
+model Placement {
+  id            String   @id @default(uuid())
+  
+  jobId         String
+  job           Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  itemId        String
+  item          Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  x             Float
+  y             Float
+  z             Float
+  
+  placedLength  Float
+  placedWidth   Float
+  placedHeight  Float
+  
+  rotated       Boolean  @default(false)
+  placed        Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+}

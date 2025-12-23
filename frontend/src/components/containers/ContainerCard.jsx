@@ -10,23 +10,39 @@ function ContainerCard({ container, selected, recommended, onSelect }) {
         }
       `}
     >
+      {/* Badges */}
       {recommended && (
         <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
           Recommended
+        </span>
+      )}
+      {container.isRefrigerated && (
+        <span className="absolute -top-2 -left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+          ❄️ Reefer
         </span>
       )}
       
       <h4 className="font-semibold text-gray-800">{container.name}</h4>
       <p className="text-sm text-gray-500">{container.code}</p>
       
+      {container.description && (
+        <p className="text-xs text-gray-400 mt-1 line-clamp-2">{container.description}</p>
+      )}
+      
       <div className="mt-2 text-sm text-gray-600">
-        <p>{(container.length / 1000).toFixed(1)}m × {(container.width / 1000).toFixed(1)}m × {(container.height / 1000).toFixed(1)}m</p>
-        <p className="font-medium">{container.volume} m³</p>
+        <p>
+          {(container.length / 1000).toFixed(1)}m × {(container.width / 1000).toFixed(1)}m × {(container.height / 1000).toFixed(1)}m
+        </p>
+        <p className="font-medium text-blue-600">{container.volume} m³</p>
       </div>
       
       <p className="mt-1 text-xs text-gray-400">
         Max: {(container.maxWeight / 1000).toFixed(1)} tons
       </p>
+
+      {container.contoured && (
+        <p className="mt-1 text-xs text-orange-500">⚠️ Contoured shape</p>
+      )}
     </div>
   );
 }

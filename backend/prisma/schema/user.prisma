@@ -1,0 +1,14 @@
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  password      String
+  
+  // Premium fields
+  tier          PremiumTier  @default(FREE)
+  premiumUntil  DateTime?
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  jobs          Job[]
+}

@@ -1,0 +1,37 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum JobStatus { 
+  DRAFT
+  READY
+  RUNNING
+  COMPLETE
+  FAILED
+}
+
+enum PremiumTier {
+  FREE
+  PREMIUM
+  ENTERPRISE
+}
+
+enum TransportMode {
+  SEA
+  AIR
+  ROAD
+  RAIL
+}
+
+enum ContainerUsage {
+  MOST_COMMON
+  COMMON
+  SPECIALIZED
+  LAST_MILE
+}
