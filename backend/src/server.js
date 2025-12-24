@@ -86,6 +86,8 @@ async function checkDatabase() {
 
 checkDatabase();
 
+
+
 // Start server (use httpServer instead of app)
 httpServer.listen(port, () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
