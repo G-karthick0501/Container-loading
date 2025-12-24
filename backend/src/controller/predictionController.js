@@ -1,5 +1,5 @@
 import prisma from '../config/prisma.js';
-import { getPrediction, checkMLHealth } from '../services/mlService.js';
+import { getPrediction, getRecommendedAlgorithm, checkMLHealth } from '../services/mlService.js';
 
 export const predictUtilization = async (req, res) => {
   try {
@@ -47,7 +47,7 @@ export const predictUtilization = async (req, res) => {
     // Call ML service
     const prediction = await getPrediction(items, container);
 
-    if (!prediction) {
+    if (!prediction || prediction.error) {
       return res.status(503).json({ 
         error: 'ML service unavailable',
         fallback: true,
@@ -58,7 +58,7 @@ export const predictUtilization = async (req, res) => {
     res.json({
       prediction: prediction.predicted_utilization,
       confidence: prediction.confidence,
-      features: prediction.features,
+      features: prediction.feature_summary,
       jobId: job.id
     });
   } catch (error) {
@@ -67,10 +67,46 @@ export const predictUtilization = async (req, res) => {
   }
 };
 
+export const predictAlgorithm = async (req, res) => {
+  try {
+    const { items, container } = req.body;
+
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: 'No items provided' });
+    }
+
+    if (!container) {
+      return res.status(400).json({ error: 'No container provided' });
+    }
+
+    // Call ML service for algorithm recommendation
+    const recommendation = await getRecommendedAlgorithm(items, container);
+
+    res.json({
+      algorithm: recommendation.algorithm,
+      confidence: recommendation.confidence,
+      probabilities: recommendation.probabilities,
+      fallback: recommendation.fallback || false
+    });
+  } catch (error) {
+    console.error('Algorithm prediction error:', error);
+    res.status(500).json({ 
+      error: 'Failed to get algorithm recommendation',
+      algorithm: 'extreme-points',
+      confidence: 0,
+      fallback: true
+    });
+  }
+};
+
 export const getMLStatus = async (req, res) => {
-  const healthy = await checkMLHealth();
+  const health = await checkMLHealth();
   res.json({ 
-    status: healthy ? 'online' : 'offline',
-    service: 'ml-prediction'
+    status: health.status === 'healthy' ? 'online' : 'offline',
+    service: 'ml-prediction',
+    models: {
+      utilization: health.utilization_model || false,
+      algorithm: health.algorithm_model || false
+    }
   });
 };

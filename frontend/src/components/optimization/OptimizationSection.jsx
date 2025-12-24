@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
-import PredictionCard from './PredictionCard';
 import OptimizationResults from './OptimizationResults';
 import AlgorithmSelector from './AlgorithmSelector';
 import ProgressBar from './ProgressBar';
@@ -12,7 +11,6 @@ import { useSocket } from '../../hooks/useSocket';
 function OptimizationSection({ job, items, onOptimize }) {
   const [optimizing, setOptimizing] = useState(false);
   const [result, setResult] = useState(null);
-  const [prediction, setPrediction] = useState(null);
   const [algorithm, setAlgorithm] = useState('extreme-points');
   
   const { connected, progress, resetProgress } = useSocket(job.id);
@@ -20,7 +18,6 @@ function OptimizationSection({ job, items, onOptimize }) {
   // Handle WebSocket completion
   useEffect(() => {
     if (progress?.status === 'complete') {
-      // Refetch job data to get placements
       fetchResult();
     }
   }, [progress?.status]);
@@ -29,7 +26,6 @@ function OptimizationSection({ job, items, onOptimize }) {
     try {
       const response = await api.get(`api/jobs/${job.id}`);
       if (response.data.placements?.length > 0) {
-        // Reconstruct result from job data
         const placements = response.data.placements;
         const placedCount = placements.filter(p => p.placed).length;
         const placedVolume = placements
@@ -42,6 +38,7 @@ function OptimizationSection({ job, items, onOptimize }) {
 
         setResult({
           placements,
+          algorithm: response.data.algorithm,
           stats: {
             totalItems: placements.length,
             placedCount,
@@ -66,11 +63,12 @@ function OptimizationSection({ job, items, onOptimize }) {
     try {
       setOptimizing(true);
       const response = await api.post(`api/jobs/${job.id}/optimize`, { algorithm });
+      
       setResult(response.data);
       onOptimize({ ...job, status: 'COMPLETE' });
       
       toast.dismiss('optimize');
-      toast.success(`Done! ${response.data.stats.utilization}% utilization (${response.data.algorithm})`);
+      toast.success(`Done! ${response.data.stats.utilization}% utilization using ${response.data.algorithm}`);
     } catch (err) {
       toast.dismiss('optimize');
       toast.error(err.response?.data?.error || 'Optimization failed');
@@ -99,18 +97,6 @@ function OptimizationSection({ job, items, onOptimize }) {
         {totalQuantity} items → {job.container?.name || 'Custom container'}
       </p>
 
-      {/* ML Prediction */}
-      {isReady && !result && (
-        <div className="mb-4">
-          <PredictionCard 
-            jobId={job.id} 
-            items={items}
-            container={job.container}
-            onPrediction={setPrediction} 
-          />
-        </div>
-      )}
-
       {/* Algorithm Selector */}
       {isReady && !result && (
         <AlgorithmSelector
@@ -131,12 +117,14 @@ function OptimizationSection({ job, items, onOptimize }) {
           onClick={handleOptimize}
           disabled={optimizing}
           className={`px-6 py-2 rounded-md text-white transition ${
-            optimizing ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+            optimizing
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700'
           }`}
         >
           {optimizing 
             ? (isGenetic ? 'Running Genetic Algorithm...' : 'Optimizing...') 
-            : `Run ${algorithm === 'auto' ? 'Auto' : algorithm === 'genetic' ? 'Genetic 🧬' : 'Optimization'}`
+            : (algorithm === 'genetic' ? 'Run Genetic 🧬' : 'Run Optimization')
           }
         </button>
       )}
@@ -147,7 +135,6 @@ function OptimizationSection({ job, items, onOptimize }) {
           job={job}
           items={items}
           result={result}
-          prediction={prediction}
         />
       )}
 
@@ -156,7 +143,11 @@ function OptimizationSection({ job, items, onOptimize }) {
         <div className="mt-6">
           <h4 className="font-semibold mb-2">3D View</h4>
           <ContainerViewer
-            container={job.container}
+            container={job.container || {
+              length: job.customLength,
+              width: job.customWidth,
+              height: job.customHeight
+            }}
             placements={result.placements}
             items={items}
           />

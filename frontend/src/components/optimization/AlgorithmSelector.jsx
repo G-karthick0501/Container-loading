@@ -1,31 +1,21 @@
 const ALGORITHMS = [
   { 
-    id: 'auto', 
-    name: 'Auto (Best)', 
-    icon: '🎯',
-    description: 'Runs all and picks best result',
-    premium: false
-  },
-  { 
     id: 'extreme-points', 
     name: 'Extreme Points', 
     icon: '📐',
-    description: 'Fast & efficient',
-    premium: false
+    description: 'Fast & efficient (88-94%)'
   },
   { 
     id: 'ffd', 
     name: 'First Fit', 
     icon: '📦',
-    description: 'Simple baseline',
-    premium: false
+    description: 'Simple baseline (70-80%)'
   },
   { 
     id: 'genetic', 
     name: 'Genetic Algorithm', 
     icon: '🧬',
-    description: 'Best results, slower (~30-60s)',
-    premium: true
+    description: 'Best results, slower (~30s)'
   }
 ];
 
@@ -35,7 +25,7 @@ function AlgorithmSelector({ selected, onChange, disabled }) {
       <label className="block text-sm font-medium text-gray-700 mb-2">
         Select Algorithm
       </label>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {ALGORITHMS.map((algo) => (
           <button
             key={algo.id}
@@ -55,11 +45,6 @@ function AlgorithmSelector({ selected, onChange, disabled }) {
               <span className="font-medium text-sm">{algo.name}</span>
             </div>
             <p className="text-xs text-gray-500 mt-1">{algo.description}</p>
-            {algo.premium && (
-              <span className="inline-block mt-1 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">
-                ⭐ Premium
-              </span>
-            )}
           </button>
         ))}
       </div>

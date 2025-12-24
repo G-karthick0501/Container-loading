@@ -70,7 +70,6 @@ export const getItemsByJob = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch items' });
   }
 };
-
 export const deleteItem = async (req, res) => {
   try {
     const { itemId } = req.params;

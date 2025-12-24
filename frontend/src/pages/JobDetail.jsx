@@ -100,7 +100,7 @@ function JobDetail() {
         <h2 className="text-xl font-semibold mb-4">Container Selection</h2>
         
         {items.length === 0 ? (
-          <p className="text-gray-500">Add items first to get container recommendations.</p>
+          <p className="text-gray-500">Add items first to select a container.</p>
         ) : (
           <ContainerSelector
             jobId={jobId}

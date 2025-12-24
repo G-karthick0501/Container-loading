@@ -16,11 +16,7 @@ function ContainerCard({ container, selected, recommended, onSelect }) {
           Recommended
         </span>
       )}
-      {container.isRefrigerated && (
-        <span className="absolute -top-2 -left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-          ❄️ Reefer
-        </span>
-      )}
+      
       
       <h4 className="font-semibold text-gray-800">{container.name}</h4>
       <p className="text-sm text-gray-500">{container.code}</p>
@@ -40,9 +36,7 @@ function ContainerCard({ container, selected, recommended, onSelect }) {
         Max: {(container.maxWeight / 1000).toFixed(1)} tons
       </p>
 
-      {container.contoured && (
-        <p className="mt-1 text-xs text-orange-500">⚠️ Contoured shape</p>
-      )}
+      
     </div>
   );
 }

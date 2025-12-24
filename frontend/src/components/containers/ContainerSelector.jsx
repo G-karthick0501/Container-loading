@@ -5,7 +5,6 @@ import ContainerGrid from './ContainerGrid';
 
 function ContainerSelector({ jobId, currentContainerId, currentTransportMode, onSave }) {
   const [containers, setContainers] = useState([]);
-  const [recommendation, setRecommendation] = useState(null);
   const [selectedMode, setSelectedMode] = useState(currentTransportMode || 'SEA');
   const [selectedId, setSelectedId] = useState(currentContainerId || null);
   const [allowRotation, setAllowRotation] = useState(true);
@@ -17,17 +16,12 @@ function ContainerSelector({ jobId, currentContainerId, currentTransportMode, on
     fetchContainers();
   }, [selectedMode]);
 
-  useEffect(() => {
-    if (jobId) fetchRecommendation();
-  }, [jobId, selectedMode]);
-
   const fetchContainers = async () => {
     try {
       setLoading(true);
       const response = await api.get(`api/containers?mode=${selectedMode}`);
       setContainers(response.data);
       
-      // Clear selection if not in this mode
       if (!response.data.find(c => c.id === selectedId)) {
         setSelectedId(null);
       }
@@ -38,23 +32,9 @@ function ContainerSelector({ jobId, currentContainerId, currentTransportMode, on
     }
   };
 
-  const fetchRecommendation = async () => {
-    try {
-      const response = await api.get(`api/jobs/${jobId}/recommendation?mode=${selectedMode}`);
-      setRecommendation(response.data);
-      
-      if (!selectedId && response.data.recommended) {
-        setSelectedId(response.data.recommended.id);
-      }
-    } catch (err) {
-      // Optional - no error needed
-    }
-  };
-
   const handleModeChange = (mode) => {
     setSelectedMode(mode);
     setSelectedId(null);
-    setRecommendation(null);
   };
 
   const handleSave = async () => {
@@ -88,29 +68,16 @@ function ContainerSelector({ jobId, currentContainerId, currentTransportMode, on
         onModeChange={handleModeChange} 
       />
 
-      {/* Recommendation */}
-      {recommendation?.recommended && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-800">💡 {recommendation.reason}</p>
-          <p className="text-sm text-green-600 mt-1">
-            Estimated utilization: ~{recommendation.utilization}%
-          </p>
-        </div>
-      )}
-
-      {/* Container Grid */}
       {loading ? (
         <p className="text-gray-500 py-8 text-center">Loading containers...</p>
       ) : (
         <ContainerGrid
           containers={containers}
           selectedId={selectedId}
-          recommendedId={recommendation?.recommended?.id}
           onSelect={setSelectedId}
         />
       )}
 
-      {/* Options */}
       <div className="flex items-center gap-2">
         <input
           type="checkbox"
